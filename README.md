@@ -1,5 +1,5 @@
 # ORCHID
-
+This repository is associated with the Oral Cancer Histology Image Datasat (ORCHID) and contains all the code files associated with the technical validation of the dataset. 
 ## Running the code
 First, you must create a conda environment for the project, and install the dependencies. This can be done by running the following commands:
 ```
@@ -17,12 +17,8 @@ The data, as mentioned previously, consists of nested folders, with compression 
 ./data_retrieve.sh
 ```
 
-Following this, your data is ready to be used. In order to use the data, you need to get all the patches into a single folder, and create two json files with the following mapping. The first json file is for differentiating between Normal, OSCC, and OSMF. And the second json is for differentiating between WDOSCC, MDOSCC, and PDOSCC:
-```
-{
-    "image_name": "label"
-}
-```
+Following this, your data is ready to be used. In order to use the data, you need to get all the patches into a single folder, and create two datafram (CSV) files with the following mapping. The first datafram (CSV) file is for differentiating between Normal, OSCC, and OSMF. And the second datafram (CSV) is for differentiating between WDOSCC, MDOSCC, and PDOSCC. Both dataframes will contain filenames with their respective labels.
+
 In order to do so, you can use the following script:
 ```
 python3 ./tools/data_preprocess.py
@@ -32,3 +28,9 @@ After this process is complete, it is time to train the model. In order to run t
 ```
 python3 ./training/train-classify-normal-oscc-osmf.py
 ```
+And in order to run the model that classifies WDOSCC, MDOSCC, or PDOSCC, you can run the following command:
+```
+python3 ./training/train-classify-wdoscc-mdoscc-pdoscc.py
+```
+
+Note: This code has been adapted for public release from the original codebase. As such, the code is error free and runs directly if the above instructions are followed. However, there may be some unforseen errors due to various reasons. If you encounter any such errors, please feel free to raise an issue on the repository, and we will try to address it as soon as possible. If you have a resolution to any issue please feel free to raise a pull request.
