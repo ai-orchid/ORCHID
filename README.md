@@ -1,4 +1,14 @@
-# ORCHID
+<div align="center">
+ 
+## Oral Cancer Histology Image Dataset (ORCHID)
+
+[![Project](http://img.shields.io/badge/Project%20Page-3d3d8f.svg)]()
+<!-- [![Demo](http://img.shields.io/badge/Demo-9acbff.svg)]() -->
+<!-- [![Conference](](#) -->
+[![Paper](](#)
+
+</div>
+
 This repository is associated with the Oral Cancer Histology Image Datasat (ORCHID) and contains all the code files associated with the technical validation of the dataset. 
 ## Running the code
 First, you must create a conda environment for the project, and install the dependencies. This can be done by running the following commands:
