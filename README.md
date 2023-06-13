@@ -5,7 +5,7 @@
 <!-- [![Demo](http://img.shields.io/badge/Demo-9acbff.svg)]() -->
 <!-- [![Conference](http://img.shields.io/badge/CVPR-2022-4b44ce.svg)](#) -->
 [![Project](http://img.shields.io/badge/Project%20Page-3d3d8f.svg)]()
-[![Paper](http://img.shields.io/badge/Paper-arxiv.1001.2234-B31B1B.svg)](#)
+[![Paper](http://img.shields.io/badge/Paperg)](#)
 
 </div>
 
