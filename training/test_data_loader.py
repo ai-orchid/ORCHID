@@ -29,8 +29,6 @@ import warnings
 warnings.filterwarnings("ignore")
 
 os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
-model_type = "DenseNet121"
-masterpath = "/Users/mraoaakash/Documents/research/research-nisha/ORCHID_data/ORCHID_data/ORCHID_TRS_working"
 def model(masterpath, model_type):
         df_path = os.path.join(masterpath, "model_metadata")
 
