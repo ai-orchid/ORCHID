@@ -43,7 +43,7 @@ def model(masterpath, model_type):
                         if i == fold:
                                 continue
                         df_train_path = os.path.join(masterpath, "model_metadata", "model_tr_fold_"+str(i)+".csv")
-                        df_train = df_train.append(pd.read_csv(df_train_path))
+                        df_train = pd.concat([df_train, pd.read_csv(df_train_path)], ignore_index=True) 
                 
                 # print(df_train.head())
 
