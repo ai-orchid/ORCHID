@@ -66,7 +66,7 @@ def build_df(path, setseed=42):
         df = df.drop(columns=["split"])
         classes = df["label"].unique()
         print(classes)
-        df = df.sample(frac=1).reset_index(drop=True, random_state=setseed)
+        df = df.sample(frac=1, random_state=setseed).reset_index(drop=True)
         print(len(df)//5)
         for i in range(5):
             df_split = df.iloc[i*len(df)//5:(i+1)*len(df)//5]
