@@ -75,8 +75,12 @@ def build_df(path, setseed=42):
     
 if __name__ == "__main__":
     # taking in argument
-    path = sys.argv[1] if len(sys.argv) > 1 else "/Users/mraoaakash/Documents/research/research-nisha/ORCHID_data/ORCHID_data/ORCHID_TRS_working"
-    setseed = sys.argv[2] if len(sys.argv) > 2 else 42
+    try:
+        path  = sys.argv[1] 
+        setseed = sys.argv[2] 
+    except:
+        print("Please provide path to the data folder and setseed")
+        sys.exit(1)
     print(path)
     build_df(path, setseed)
 

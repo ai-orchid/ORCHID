@@ -212,8 +212,8 @@ def model(masterpath, model_type):
                         model = Model(model.input, x)
                         model.compile(optimizer = RMSprop(learning_rate = 0.0000001), loss = 'categorical_crossentropy', metrics = ['acc'])
 
-                if not os.path.exists(f'{masterpath}/models/{model_type}_fold_{fold+1}'):
-                        os.makedirs(f'{masterpath}/models/{model_type}_fold_{fold+1}')
+                if not os.path.exists(f'{masterpath}/models/{model_type}/{model_type}_fold_{fold+1}'):
+                        os.makedirs(f'{masterpath}/models/{model_type}/{model_type}_fold_{fold+1}')
                 # Model Summary
                 # model.summary()
 
@@ -221,7 +221,7 @@ def model(masterpath, model_type):
                 print("------------------------------------------")
                 print(f'Training the model {model_type}_fold_{fold+1}')
                 print("------------------------------------------")
-                filepath = f'{masterpath}/models/{model_type}_fold_{fold+1}/model_log'
+                filepath = f'{masterpath}/models/{model_type}/{model_type}_fold_{fold+1}/model_log'
                 if os.path.exists(filepath):
                         os.makedirs(filepath)
                 filepath = filepath + "/model-{epoch:02d}-{val_acc:.2f}.h5"
@@ -232,7 +232,7 @@ def model(masterpath, model_type):
                 print("------------------------------------------")
 
                 # Saving the model
-                model.save(f'{masterpath}/models/{model_type}_fold_{fold+1}/{model_type}_fold_{fold+1}.h5')
+                model.save(f'{masterpath}/models/{model_type}/{model_type}_fold_{fold+1}/{model_type}_fold_{fold+1}.h5')
                 print("------------------------------------------")
                 print(f'Model saved')
                 print("------------------------------------------")
@@ -248,23 +248,23 @@ def model(masterpath, model_type):
                 plt.title('Training and Validation Accuracy')
                 plt.legend(['train', 'test'], loc='upper left')
                 plt.tight_layout()
-                plt.savefig(f'{masterpath}/models/{model_type}_fold_{fold+1}/Accuracy.jpg')
+                plt.savefig(f'{masterpath}/models/{model_type}/{model_type}_fold_{fold+1}/Accuracy.jpg')
 
 
                 # Saving Training History
                 hist_df = pd.DataFrame(history.history) 
                 # save to json:  
-                hist_json_file = f'{masterpath}/models/{model_type}_fold_{fold+1}/history.json' 
+                hist_json_file = f'{masterpath}/models/{model_type}/{model_type}_fold_{fold+1}/history.json' 
                 with open(hist_json_file, mode='w') as f:
                         hist_df.to_json(f)
                 # or save to csv: 
-                hist_csv_file = f'{masterpath}/models/{model_type}_fold_{fold+1}/history.csv'
+                hist_csv_file = f'{masterpath}/models/{model_type}/{model_type}_fold_{fold+1}/history.csv'
                 with open(hist_csv_file, mode='w') as f:
                         hist_df.to_csv(f)
                         
 
                 # Loading Model for Testing
-                loaded_model = load_model(f'{masterpath}/models/{model_type}_fold_{fold+1}/{model_type}_fold_{fold+1}.h5')
+                loaded_model = load_model(f'{masterpath}/models/{model_type}/{model_type}_fold_{fold+1}/{model_type}_fold_{fold+1}.h5')
                 outcomes = loaded_model.predict(valid_generator)
                 y_pred = np.argmax(outcomes, axis=1)
 
@@ -277,9 +277,9 @@ def model(masterpath, model_type):
                 plt.xlabel('Predicted Label')
                 plt.ylabel('True Label')
                 plt.tight_layout()
-                plt.savefig(f'{masterpath}/models/{model_type}_fold_{fold+1}/Confusion_matrix.jpg')
+                plt.savefig(f'{masterpath}/models/{model_type}/{model_type}_fold_{fold+1}/Confusion_matrix.jpg')
                 conf_df = pd.DataFrame(confusion, index = list(valid_generator.class_indices.keys()), columns = list(valid_generator.class_indices.keys()))
-                conf_df.to_csv(f'{masterpath}/models/{model_type}_fold_{fold+1}/Confusion_matrix.csv')
+                conf_df.to_csv(f'{masterpath}/models/{model_type}/{model_type}_fold_{fold+1}/Confusion_matrix.csv')
 
 
 
@@ -288,7 +288,7 @@ def model(masterpath, model_type):
                 target_names = list(valid_generator.class_indices.keys())
                 report = classification_report(valid_generator.classes, y_pred, target_names=target_names, output_dict=True)
                 df = pd.DataFrame(report).transpose()
-                df.to_csv(f'{masterpath}/models/{model_type}_fold_{fold+1}/Classification_report.csv')
+                df.to_csv(f'{masterpath}/models/{model_type}/{model_type}_fold_{fold+1}/Classification_report.csv')
 
                 print("------------------------------------------")
                 print(f'Supplimentary Data Saved')
