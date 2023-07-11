@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import sys
 
-def build_df(path):
+def build_df(path, setseed=42):
     # path = "/Users/mraoaakash/Documents/research/research-nisha/ORCHID_data/ORCHID_data/ORCHID_TRS_working" #enter the path to the folder where the data is stored
     save_path = os.path.join(path, "model_metadata")
     if not os.path.exists(save_path):
@@ -66,7 +66,7 @@ def build_df(path):
         df = df.drop(columns=["split"])
         classes = df["label"].unique()
         print(classes)
-        df = df.sample(frac=1).reset_index(drop=True)
+        df = df.sample(frac=1).reset_index(drop=True, seed=setseed)
         print(len(df)//5)
         for i in range(5):
             df_split = df.iloc[i*len(df)//5:(i+1)*len(df)//5]
@@ -76,8 +76,9 @@ def build_df(path):
 if __name__ == "__main__":
     # taking in argument
     path = sys.argv[1] if len(sys.argv) > 1 else "/Users/mraoaakash/Documents/research/research-nisha/ORCHID_data/ORCHID_data/ORCHID_TRS_working"
+    setseed = sys.argv[2] if len(sys.argv) > 2 else 42
     print(path)
-    build_df(path)
+    build_df(path, setseed)
 
 
 

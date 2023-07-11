@@ -1,10 +1,12 @@
 #Importing necessary packages
 import pandas as pd
 import tensorflow as tf
+import sys
 import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.callbacks import  ModelCheckpoint
 from tensorflow.keras.models import Model
 from tensorflow.keras.models import load_model
 import os
@@ -18,272 +20,287 @@ from tensorflow.keras.applications import NASNetLarge
 from tensorflow.keras.applications import NASNetMobile
 from tensorflow.keras.applications import VGG19
 from tensorflow.keras.applications import Xception
+from tensorflow.keras.regularizers import l2
 from tensorflow.keras import layers
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from sklearn.metrics import classification_report, confusion_matrix
 from tensorflow.keras.optimizers import RMSprop
+import warnings
+warnings.filterwarnings("ignore")
 
 os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
-
-#checking tensorflow version
-print(tf.__version__)
-print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
-
-data_path = './ORCHID_data/all_patches' # ADD YOUR DATA PATH HERE
-project_path = './' # ADD YOUR PROJECT PATH HERE
-
-df = pd.read_csv(f'{project_path}/ORCHID_data/standard_patch.csv')
-
-# Declaring Model Type
-model_type = 'DenseNet121'# loading the dataframe
-# ImageDataGenerator
-# color images
-datagen_train = ImageDataGenerator(rescale = 1.0/255.0,validation_split=0.2)
-# Training Data
-train_generator = datagen_train.flow_from_dataframe(
-	df,
-	directory = data_path,
-	x_col = 'filename',
-	y_col = 'label',
-	target_size=(300, 300),
-	batch_size=32 if model_type not in ['NASNetLarge','NASNetMobile'] else 8,
-	class_mode='categorical',
-	subset = 'training',
-	shuffle=False)
-#Validation Data
-valid_generator = datagen_train.flow_from_dataframe(
-	df,
-	directory = data_path,
-	x_col = 'filename',
-	y_col = 'label',
-	target_size=(300, 300),
-	batch_size=32 if model_type not in ['NASNetLarge','NASNetMobile'] else 8,
-	class_mode='categorical',
-	subset = 'validation',
-	shuffle=False)
+def model(masterpath, model_type):
+        df_path = os.path.join(masterpath, "model_metadata")
 
 
+        for fold in range (0,5):
+                print("fold", fold)
+                df_train = pd.DataFrame(columns=["label", "filename"])
+                df_test_path = os.path.join(masterpath, "model_metadata", "model_tr_OSCC_fold_"+str(fold)+".csv")
+                for i in range(0,5):
+                        if i == fold:
+                                continue
+                        df_train_path = os.path.join(masterpath, "model_metadata", "model_tr_OSCC_fold_"+str(i)+".csv")
+                        df_train = pd.concat([df_train, pd.read_csv(df_train_path)], ignore_index=True) 
+                
+                # print(df_train.head())
 
-# Creating the model
-if model_type == 'DenseNet121':
-        densenet = DenseNet121(
-        weights='imagenet',
-        include_top=False,
-        input_shape=(300,300,3)
-        )
-        for layer in densenet.layers:
-                layer.trainable = True
-        x = layers.Flatten()(densenet.output)
-        x = layers.Dense(1024, activation = 'relu')(x)
-        x = layers.Dropout(0.2)(x)
-        x = layers.Dense(3, activation = 'softmax')(x)
-        model = Model(densenet.input, x)
-        model.compile(optimizer = RMSprop(learning_rate = 0.0001), loss = 'categorical_crossentropy', metrics = ['acc'])
+                datagen_train = ImageDataGenerator(rescale = 1.0/255.0,)
+                # Training Data
+                train_generator = datagen_train.flow_from_dataframe(
+                        df_train,
+                        x_col = 'filename',
+                        y_col = 'label',
+                        target_size=(300, 300),
+                        batch_size=32 if model_type not in ['NASNetLarge','NASNetMobile'] else 8,
+                        class_mode='categorical',
+                        shuffle=False)
+                #Validation Data
+                datagen_test = ImageDataGenerator(rescale = 1.0/255.0)
+                df_test = pd.read_csv(df_test_path)
+                valid_generator = datagen_train.flow_from_dataframe(
+                        df_test,
+                        x_col = 'filename',
+                        y_col = 'label',
+                        target_size=(300, 300),
+                        batch_size=32 if model_type not in ['NASNetLarge','NASNetMobile'] else 8,
+                        class_mode='categorical',
+                        shuffle=False)
 
-if model_type == 'DenseNet169':
-        densenet = DenseNet169(
-                weights='imagenet',
-                include_top=False,
-                input_shape=(300,300,3)
-                )
-        for layer in densenet.layers:
-                layer.trainable = True
-        x = layers.Flatten()(densenet.output)
-        x = layers.Dense(1024, activation = 'relu')(x)
-        x = layers.Dropout(0.2)(x)
-        x = layers.Dense(3, activation = 'softmax')(x)
-        model = Model(densenet.input, x)
-        model.compile(optimizer = RMSprop(learning_rate = 0.0001), loss = 'categorical_crossentropy', metrics = ['acc'])
+                # printing dataloader info
+                print("train_generator.class_indices", train_generator.class_indices)
+                print("valid_generator.class_indices", valid_generator.class_indices)
 
-if model_type == 'DenseNet201':
-        densenet = DenseNet201(
-                weights='imagenet',
-                include_top=False,
-                input_shape=(300,300,3)
-                )
-        for layer in densenet.layers:
-                layer.trainable = True
-        x = layers.Flatten()(densenet.output)
-        x = layers.Dense(1024, activation = 'relu')(x)
-        x = layers.Dropout(0.2)(x)
-        x = layers.Dense(3, activation = 'softmax')(x)
-        model = Model(densenet.input, x)
-        model.compile(optimizer = RMSprop(learning_rate = 0.0001), loss = 'categorical_crossentropy', metrics = ['acc'])
+                # Creating the model
+                if model_type == 'DenseNet121':
+                        model = DenseNet121(
+                        weights='imagenet',
+                        include_top=False,
+                        input_shape=(300,300,3)
+                        )
+                        for layer in model.layers:
+                                layer.trainable = True
+                        x = layers.GlobalAveragePooling2D()(model.output)
+                        x = layers.Dense(128, activation = 'relu',kernel_regularizer=l2(0.01))(x)
+                        x = layers.Dense(3, activation = 'softmax',kernel_regularizer=l2(0.01))(x)
+                        model = Model(model.input, x)
+                        model.compile(optimizer = RMSprop(learning_rate = 0.0000001), loss = 'categorical_crossentropy', metrics = ['acc'])
 
-if model_type == 'InceptionResNetV2':
-        inception = InceptionResNetV2(
-                weights='imagenet',
-                include_top=False,
-                input_shape=(300,300,3)
-                )
-        for layer in inception.layers:
-                layer.trainable = True
-        x = layers.Flatten()(inception.output)
-        x = layers.Dense(1024, activation = 'relu')(x)
-        x = layers.Dropout(0.2)(x)
-        x = layers.Dense(3, activation = 'softmax')(x)
-        model = Model(inception.input, x)
-        model.compile(optimizer = RMSprop(learning_rate = 0.0001), loss = 'categorical_crossentropy', metrics = ['acc'])
+                if model_type == 'DenseNet169':
+                        model = DenseNet169(
+                                weights='imagenet',
+                                include_top=False,
+                                input_shape=(300,300,3)
+                                )
+                        for layer in model.layers:
+                                layer.trainable = True
+                        x = layers.GlobalAveragePooling2D()(model.output)
+                        x = layers.Dense(128, activation = 'relu',kernel_regularizer=l2(0.01))(x)
+                        x = layers.Dense(3, activation = 'softmax',kernel_regularizer=l2(0.01))(x)
+                        model = Model(model.input, x)
+                        model.compile(optimizer = RMSprop(learning_rate = 0.0000001), loss = 'categorical_crossentropy', metrics = ['acc'])
 
-if model_type == 'InceptionV3':
-        inception = InceptionV3(
-                weights='imagenet',
-                include_top=False,
-                input_shape=(300,300,3)
-                )
-        for layer in inception.layers:
-                layer.trainable = True
-        x = layers.Flatten()(inception.output)
-        x = layers.Dense(1024, activation = 'relu')(x)
-        x = layers.Dropout(0.2)(x)
-        x = layers.Dense(3, activation = 'softmax')(x)
-        model = Model(inception.input, x)
-        model.compile(optimizer = RMSprop(learning_rate = 0.0001), loss = 'categorical_crossentropy', metrics = ['acc'])
-
-if model_type == 'MobileNetV3Large':
-        mobilenet = MobileNetV3Large(
-                weights='imagenet',
-                include_top=False,
-                input_shape=(300,300,3)
-                )
-        for layer in mobilenet.layers:
-                layer.trainable = True
-        x = layers.Flatten()(mobilenet.output)
-        x = layers.Dense(1024, activation = 'relu')(x)
-        x = layers.Dropout(0.2)(x)
-        x = layers.Dense(3, activation = 'softmax')(x)
-        model = Model(mobilenet.input, x)
-        model.compile(optimizer = RMSprop(learning_rate = 0.0001), loss = 'categorical_crossentropy', metrics = ['acc'])
-
-if model_type == 'NASNetLarge':
-        nasnet = NASNetLarge(
-                include_top=False,
-                input_shape=(331,331,3)
-                )
-        for layer in nasnet.layers:
-                layer.trainable = True
-        x = layers.Flatten()(nasnet.output)
-        x = layers.Dense(1024, activation = 'relu')(x)
-        x = layers.Dropout(0.2)(x)
-        x = layers.Dense(3, activation = 'softmax')(x)
-        model = Model(nasnet.input, x)
-        model.compile(optimizer = RMSprop(learning_rate = 0.0001), loss = 'categorical_crossentropy', metrics = ['acc'])        
-
-if model_type == 'NASNetMobile':
-        nasnet = NASNetMobile(
-                weights='imagenet',
-                include_top=False,
-                input_shape=(224,224,3)
-                )
-        for layer in nasnet.layers:
-                layer.trainable = True
-        x = layers.Flatten()(nasnet.output)
-        x = layers.Dense(1024, activation = 'relu')(x)
-        x = layers.Dropout(0.2)(x)
-        x = layers.Dense(3, activation = 'softmax')(x)
-        model = Model(nasnet.input, x)
-        model.compile(optimizer = RMSprop(learning_rate = 0.0001), loss = 'categorical_crossentropy', metrics = ['acc'])
-
-if model_type == 'VGG19':
-        vgg19 = VGG19(
-                weights='imagenet',
-                include_top=False,
-                input_shape=(300,300,3)
-                )
-        for layer in vgg19.layers:
-                layer.trainable = True
-        x = layers.Flatten()(vgg19.output)
-        x = layers.Dense(1024, activation = 'relu')(x)
-        x = layers.Dropout(0.2)(x)
-        x = layers.Dense(3, activation = 'softmax')(x)
-        model = Model(vgg19.input, x)
-        model.compile(optimizer = RMSprop(learning_rate = 0.0001), loss = 'categorical_crossentropy', metrics = ['acc'])
-
-if model_type == 'Xception':
-        xception = Xception(
-                weights='imagenet',
-                include_top=False,
-                input_shape=(300,300,3)
-                )
-        for layer in xception.layers:
-                layer.trainable = True
-        x = layers.Flatten()(xception.output)
-        x = layers.Dense(1024, activation = 'relu')(x)
-        x = layers.Dropout(0.2)(x)
-        x = layers.Dense(3, activation = 'softmax')(x)
-        model = Model(xception.input, x)
-        model.compile(optimizer = RMSprop(learning_rate = 0.0001), loss = 'categorical_crossentropy', metrics = ['acc'])
-
-if not os.path.exists(f'{project_path}/models/{model_type}'):
-        os.makedirs(f'{project_path}/models/{model_type}')
-# Model Summary
-model.summary()
-
-# Training the model
-
-print("------------------------------------------")
-print(f'Training the model {model_type}')
-print("------------------------------------------")
-history = model.fit(train_generator, validation_data = valid_generator, epochs=50)
-print("------------------------------------------")
-print(f'Training Complete')
-print("------------------------------------------")
-
-# Saving the model
-model.save(f'{project_path}/models/{model_type}/{model_type}.h5')
-print("------------------------------------------")
-print(f'Model saved')
-print("------------------------------------------")
+                if model_type == 'DenseNet201':
+                        model = DenseNet201(
+                                weights='imagenet',
+                                include_top=False,
+                                input_shape=(300,300,3)
+                                )
+                        for layer in model.layers:
+                                layer.trainable = True
+                        x = layers.GlobalAveragePooling2D()(model.output)
+                        x = layers.Dense(128, activation = 'relu',kernel_regularizer=l2(0.01))(x)
+                        x = layers.Dense(3, activation = 'softmax',kernel_regularizer=l2(0.01))(x)
+                        model = Model(model.input, x)
+                        model.compile(optimizer = RMSprop(learning_rate = 0.0000001), loss = 'categorical_crossentropy', metrics = ['acc'])
 
 
-#plotting the accuracy and loss
-print("------------------------------------------")
-print(f'Plotting and supplimentary data')
-print("------------------------------------------")
-plt.figure(figsize=(10, 10))
-plt.plot(history.history['acc'], label='Training Accuracy')
-plt.plot(history.history['val_acc'], label='Validation Accuracy')
-plt.title('Training and Validation Accuracy')
-plt.legend(['train', 'test'], loc='upper left')
-plt.tight_layout()
-plt.savefig(f'{project_path}/models/{model_type}/Accuracy.jpg')
+                if model_type == 'InceptionResNetV2':
+                        model = InceptionResNetV2(
+                                weights='imagenet',
+                                include_top=False,
+                                input_shape=(300,300,3)
+                                )
+                        for layer in model.layers:
+                                layer.trainable = True
+                        x = layers.GlobalAveragePooling2D()(model.output)
+                        x = layers.Dense(128, activation = 'relu',kernel_regularizer=l2(0.01))(x)
+                        x = layers.Dense(3, activation = 'softmax',kernel_regularizer=l2(0.01))(x)
+                        model = Model(model.input, x)
+                        model.compile(optimizer = RMSprop(learning_rate = 0.0000001), loss = 'categorical_crossentropy', metrics = ['acc'])
 
-# Saving Model History
-hist_df = pd.DataFrame(history.history) 
-# save to json:  
-hist_json_file = f'{project_path}/models/{model_type}/history.json' 
-with open(hist_json_file, mode='w') as f:
-    hist_df.to_json(f)
-# or save to csv: 
-hist_csv_file = f'{project_path}/models/{model_type}/history.csv'
-with open(hist_csv_file, mode='w') as f:
-    hist_df.to_csv(f)
+                if model_type == 'InceptionV3':
+                        model = InceptionV3(
+                                weights='imagenet',
+                                include_top=False,
+                                input_shape=(300,300,3)
+                                )
+                        for layer in model.layers:
+                                layer.trainable = True
+                        x = layers.GlobalAveragePooling2D()(model.output)
+                        x = layers.Dense(128, activation = 'relu',kernel_regularizer=l2(0.01))(x)
+                        x = layers.Dense(3, activation = 'softmax',kernel_regularizer=l2(0.01))(x)
+                        model = Model(model.input, x)
+                        model.compile(optimizer = RMSprop(learning_rate = 0.0000001), loss = 'categorical_crossentropy', metrics = ['acc'])
+
+                if model_type == 'MobileNetV3Large':
+                        model = MobileNetV3Large(
+                                weights='imagenet',
+                                include_top=False,
+                                input_shape=(300,300,3)
+                                )
+                        for layer in model.layers:
+                                layer.trainable = True
+                        x = layers.GlobalAveragePooling2D()(model.output)
+                        x = layers.Dense(128, activation = 'relu',kernel_regularizer=l2(0.01))(x)
+                        x = layers.Dense(3, activation = 'softmax',kernel_regularizer=l2(0.01))(x)
+                        model = Model(model.input, x)
+                        model.compile(optimizer = RMSprop(learning_rate = 0.0000001), loss = 'categorical_crossentropy', metrics = ['acc'])
+
+                if model_type == 'NASNetLarge':
+                        model = NASNetLarge(
+                                weights='imagenet',
+                                include_top=False,
+                                input_shape=(331,331,3)
+                                )
+                        for layer in model.layers:
+                                layer.trainable = True
+                        x = layers.GlobalAveragePooling2D()(model.output)
+                        x = layers.Dense(128, activation = 'relu',kernel_regularizer=l2(0.01))(x)
+                        x = layers.Dense(3, activation = 'softmax',kernel_regularizer=l2(0.01))(x)
+                        model = Model(model.input, x)
+                        model.compile(optimizer = RMSprop(learning_rate = 0.0000001), loss = 'categorical_crossentropy', metrics = ['acc'])        
+
+                if model_type == 'NASNetMobile':
+                        model = NASNetMobile(
+                                include_top=False,
+                                input_shape=(224,224,3)
+                                )
+                        for layer in model.layers:
+                                layer.trainable = True
+                        x = layers.GlobalAveragePooling2D()(model.output)
+                        x = layers.Dense(128, activation = 'relu',kernel_regularizer=l2(0.01))(x)
+                        x = layers.Dense(3, activation = 'softmax',kernel_regularizer=l2(0.01))(x)
+                        model = Model(model.input, x)
+                        model.compile(optimizer = RMSprop(learning_rate = 0.0000001), loss = 'categorical_crossentropy', metrics = ['acc'])
+
+                if model_type == 'VGG19':
+                        model = VGG19(
+                                weights='imagenet',
+                                include_top=False,
+                                input_shape=(300,300,3)
+                                )
+                        for layer in model.layers:
+                                layer.trainable = True
+                        x = layers.GlobalAveragePooling2D()(model.output)
+                        x = layers.Dense(128, activation = 'relu',kernel_regularizer=l2(0.01))(x)
+                        x = layers.Dense(3, activation = 'softmax',kernel_regularizer=l2(0.01))(x)
+                        model = Model(model.input, x)
+                        model.compile(optimizer = RMSprop(learning_rate = 0.0000001), loss = 'categorical_crossentropy', metrics = ['acc'])
+
+                if model_type == 'Xception':
+                        model = Xception(
+                                weights='imagenet',
+                                include_top=False,
+                                input_shape=(300,300,3)
+                                )
+                        for layer in model.layers:
+                                layer.trainable = True
+                        x = layers.GlobalAveragePooling2D()(model.output)
+                        x = layers.Dense(128, activation = 'relu',kernel_regularizer=l2(0.01))(x)
+                        x = layers.Dense(3, activation = 'softmax',kernel_regularizer=l2(0.01))(x)
+                        model = Model(model.input, x)
+                        model.compile(optimizer = RMSprop(learning_rate = 0.0000001), loss = 'categorical_crossentropy', metrics = ['acc'])
+
+                if not os.path.exists(f'{masterpath}/models/{model_type}_fold_{fold+1}'):
+                        os.makedirs(f'{masterpath}/models/{model_type}_fold_{fold+1}')
+                # Model Summary
+                model.summary()
+
+                # Training the model
+                print("------------------------------------------")
+                print(f'Training the model {model_type}_fold_{fold+1}')
+                print("------------------------------------------")
+                filepath = f'{masterpath}/models/{model_type}_fold_{fold+1}/model_log'
+                if os.path.exists(filepath):
+                        os.makedirs(filepath)
+                filepath = filepath + "/model-{epoch:02d}-{val_acc:.2f}.h5"
+                callbacks = ModelCheckpoint(filepath, monitor='val_loss', verbose=0, save_best_only=False, save_weights_only=False, mode='auto', period=10)
+                history = model.fit(train_generator, validation_data = valid_generator, epochs=100)
+                print("------------------------------------------")
+                print(f'Training Complete')
+                print("------------------------------------------")
+
+                # Saving the model
+                model.save(f'{masterpath}/models/{model_type}_fold_{fold+1}/{model_type}_fold_{fold+1}.h5')
+                print("------------------------------------------")
+                print(f'Model saved')
+                print("------------------------------------------")
 
 
-# Loading the model for Testing
-loaded_model = load_model(f'{project_path}/models/{model_type}/{model_type}.h5')
-outcomes = loaded_model.predict(valid_generator)
-y_pred = np.argmax(outcomes, axis=1)
+                #plotting the accuracy and loss
+                print("------------------------------------------")
+                print(f'Plotting and supplimentary data')
+                print("------------------------------------------")
+                plt.figure(figsize=(10, 10))
+                plt.plot(history.history['acc'], label='Training Accuracy')
+                plt.plot(history.history['val_acc'], label='Validation Accuracy')
+                plt.title('Training and Validation Accuracy')
+                plt.legend(['train', 'test'], loc='upper left')
+                plt.tight_layout()
+                plt.savefig(f'{masterpath}/models/{model_type}_fold_{fold+1}/Accuracy.jpg')
 
-# Computing and saving the Confusion Matrix and Classification Report
-# confusion matrix
-confusion = confusion_matrix(valid_generator.classes, y_pred)
-plt.figure(figsize=(10, 10))
-sns.heatmap(confusion, annot=True, fmt='d', cmap='Blues')
-plt.title('Confusion Matrix')
-plt.xlabel('Predicted Label')
-plt.ylabel('True Label')
-plt.tight_layout()
-plt.savefig(f'{project_path}/models/{model_type}/Confusion_matrix.jpg')
-conf_df = pd.DataFrame(confusion, index = ['wdoscc','mdoscc','pdoscc'], columns = ['wdoscc','mdoscc','pdoscc'])
-conf_df.to_csv(f'{project_path}/models/{model_type}/Confusion_matrix.csv')
 
-# classification report
-target_names = ['wdoscc','mdoscc','pdoscc']
-report = classification_report(valid_generator.classes, y_pred, target_names=target_names, output_dict=True)
-df = pd.DataFrame(report).transpose()
-df.to_csv(f'{project_path}/models/{model_type}/Classification_report.csv')
+                # Saving Training History
+                hist_df = pd.DataFrame(history.history) 
+                # save to json:  
+                hist_json_file = f'{masterpath}/models/{model_type}_fold_{fold+1}/history.json' 
+                with open(hist_json_file, mode='w') as f:
+                        hist_df.to_json(f)
+                # or save to csv: 
+                hist_csv_file = f'{masterpath}/models/{model_type}_fold_{fold+1}/history.csv'
+                with open(hist_csv_file, mode='w') as f:
+                        hist_df.to_csv(f)
+                        
 
-print("------------------------------------------")
-print(f'Supplimentary Data Saved')
-print("------------------------------------------")
+                # Loading Model for Testing
+                loaded_model = load_model(f'{masterpath}/models/{model_type}_fold_{fold+1}/{model_type}_fold_{fold+1}.h5')
+                outcomes = loaded_model.predict(valid_generator)
+                y_pred = np.argmax(outcomes, axis=1)
+
+                # Computing and saving the confusion matrix
+                # confusion matrix
+                confusion = confusion_matrix(valid_generator.classes, y_pred)
+                plt.figure(figsize=(10, 10))
+                sns.heatmap(confusion, annot=True, fmt='d', cmap='Blues')
+                plt.title('Confusion Matrix')
+                plt.xlabel('Predicted Label')
+                plt.ylabel('True Label')
+                plt.tight_layout()
+                plt.savefig(f'{masterpath}/models/{model_type}_fold_{fold+1}/Confusion_matrix.jpg')
+                # getting dataloader keys
+                conf_df = pd.DataFrame(confusion, index = list(valid_generator.class_indices.keys()), columns = list(valid_generator.class_indices.keys()))
+                conf_df.to_csv(f'{masterpath}/models/{model_type}_fold_{fold+1}/Confusion_matrix.csv')
+
+
+
+                # Computing and saving the Classification Report
+                # classification report
+                target_names = list(valid_generator.class_indices.keys())
+                report = classification_report(valid_generator.classes, y_pred, target_names=target_names, output_dict=True)
+                df = pd.DataFrame(report).transpose()
+                df.to_csv(f'{masterpath}/models/{model_type}_fold_{fold+1}/Classification_report.csv')
+
+                print("------------------------------------------")
+                print(f'Supplimentary Data Saved')
+                print("------------------------------------------")
+
+
+if __name__ == '__main__':
+        args = sys.argv[1:]
+        if len(args) == 0:
+                print('Please provide the master path model type. Example: python3 train-classify-normal-oscc-osmf.py VGG16')
+                sys.exit(1)
+        masterpath = args[0]
+        model_type = args[1]
+        model(masterpath, model_type)
