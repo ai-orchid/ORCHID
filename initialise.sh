@@ -1,5 +1,3 @@
-conda create --name histoimgan python=3.9.*
-conda activate histoimgan
 nvidia-smi
 conda install -c conda-forge cudatoolkit=11.8.0
 pip install nvidia-cudnn-cu11==8.6.0.163
