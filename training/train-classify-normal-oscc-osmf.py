@@ -224,9 +224,9 @@ def model(masterpath, model_type):
                 filepath = f'{masterpath}/models/{model_type}/{model_type}_fold_{fold+1}/model_log'
                 if os.path.exists(filepath):
                         os.makedirs(filepath)
-                filepath = filepath + "/model-{epoch:02d}-{val_acc:.2f}.h5"
+                filepath = filepath + "/model-{epoch:02d}.h5"
                 callbacks = ModelCheckpoint(filepath, monitor='val_loss', verbose=0, save_best_only=False, save_weights_only=False, mode='auto', period=10)
-                history = model.fit(train_generator, validation_data = valid_generator, epochs=100)
+                history = model.fit(train_generator, validation_data = valid_generator, epochs=100, callbacks=[callbacks], verbose=1)
                 print("------------------------------------------")
                 print(f'Training Complete')
                 print("------------------------------------------")
