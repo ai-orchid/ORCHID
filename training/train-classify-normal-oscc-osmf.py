@@ -32,7 +32,7 @@ os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
 def model(masterpath, model_type):
         df_path = os.path.join(masterpath, "model_metadata")
 
-        for fold in range (0,5):
+        for fold in range (0,3):
                 print("fold", fold)
                 df_train = pd.DataFrame(columns=["label", "filename"])
                 df_test_path = os.path.join(masterpath, "model_metadata", "model_tr_fold_"+str(fold)+".csv")
