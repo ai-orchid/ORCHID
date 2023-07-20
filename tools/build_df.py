@@ -67,9 +67,9 @@ def build_df(path, setseed=42):
         classes = df["label"].unique()
         print(classes)
         df = df.sample(frac=1, random_state=1).reset_index(drop=True)
-        print(len(df)//5)
-        for i in range(5):
-            df_split = df.iloc[i*len(df)//5:(i+1)*len(df)//5]
+        print(len(df)//3)
+        for i in range(3):
+            df_split = df.iloc[i*len(df)//3:(i+1)*len(df)//3]
             print(len(df_split))
             df_split.to_csv(f"{save_path}/model_tr{adder}_fold_{i}.csv", index=False)
     
